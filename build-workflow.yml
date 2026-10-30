@@ -1,0 +1,67 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # every build gets a higher version number (1.0.1, 1.0.2, ...), which is how installed apps know a newer one exists
+      - name: Set version from the run number
+        shell: bash
+        run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
+      - name: Install
+        run: npm install
+
+      # the repository stays private: the installed app reads releases with a read-only token stored as a GitHub secret
+      - name: Add the read-only update token
+        shell: bash
+        env:
+          UPDATE_TOKEN: ${{ secrets.UPDATE_TOKEN }}
+        run: |
+          if [ -n "$UPDATE_TOKEN" ]; then
+            printf '{"owner":"%s","repo":"%s","token":"%s"}' "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$UPDATE_TOKEN" > update-token.json
+            echo "update token added"
+          else
+            echo "::warning::UPDATE_TOKEN secret is not set, so this build cannot auto-update"
+          fi
+
+      - name: Build installer
+        shell: bash
+        run: npx electron-builder --win --x64 --publish never -c.publish.provider=github -c.publish.owner=${{ github.repository_owner }} -c.publish.repo=${{ github.event.repository.name }} -c.publish.private=true
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Keep the installers as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JEE-OS-Windows
+          path: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap
+
+      # latest.yml and the .blockmap files are what the installed app reads to update itself
+      - name: Publish a release with the installers
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: JEE OS 1.0.${{ github.run_number }}
+          make_latest: true
+          files: |
+            dist/*.exe
+            dist/latest.yml
+            dist/*.blockmap

@@ -1,0 +1,53 @@
+{
+  "name": "ascent-desktop",
+  "productName": "JEE OS",
+  "version": "1.0.0",
+  "description": "JEE OS: study command centre",
+  "main": "main.js",
+  "author": "Bhaskarjya Dhekial Phukan",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ascent.studycentre",
+    "productName": "JEE OS",
+    "files": [
+      "main.js",
+      "preload.js",
+      "build/icon.ico",
+      "app/**/*",
+      "update-token.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "JEE-OS-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "JEE-OS-Portable-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  }
+}
